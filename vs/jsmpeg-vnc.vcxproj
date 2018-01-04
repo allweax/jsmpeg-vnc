@@ -83,7 +83,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\source\libwebsockets\lib\Debug;..\source\ffmpeg\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\source\libwebsockets\lib\libdebug;..\source\ffmpeg\lib\x86</AdditionalLibraryDirectories>
       <AdditionalDependencies>libavcodecd.lib;libavutild.lib;libswscaled.lib;libswresampled.lib;libx264d.lib;libopusd.lib;websockets_static.lib;winmm.lib;Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -105,7 +105,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\source\libwebsockets\lib\Release;..\source\ffmpeg\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\source\libwebsockets\lib\librelease;..\source\ffmpeg\lib\x86</AdditionalLibraryDirectories>
       <AdditionalDependencies>libavcodec.lib;libavutil.lib;libswscale.lib;libswresample.lib;libx264.lib;libopus.lib;websockets_static.lib;winmm.lib;Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
