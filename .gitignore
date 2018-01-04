@@ -24,6 +24,7 @@ DerivedData
 *.suo
 *.user
 *.sln.docstates
+.vs
 
 # Build results
 
@@ -72,6 +73,9 @@ ipch/
 *.opensdf
 *.sdf
 *.cachefile
+*.db
+*.vcxproj.user
+*.opendb
 
 # Visual Studio profiler
 *.psess

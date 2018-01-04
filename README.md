@@ -6,25 +6,32 @@ A low latency, high framerate screen sharing server and client, viewable in any 
 
 [Download Binaries](https://github.com/phoboslab/jsmpeg-vnc/releases)
 
+# Update
+1, update libwebsockets to version 2.x
+2, update ffmpeg 3.x
+3, config web root path by command line
+4, update to VS2015
+
 
 ## Usage & Performance Considerations
 
 ```
-jsmpeg-vnc.exe [options] <window name>
+jsmpeg-vnc.exe [options] [window name]
 
 Options:
 	-b bitrate in kilobit/s (default: estimated by output size)
 	-s output size as WxH. E.g: -s 640x480 (default: same as window size)
 	-f target framerate (default: 60)
 	-p port (default: 8080)
+    -r root absolute path for web service (default exe module's path)
 	-c crop area in the captured window as X,Y,W,H. E.g.: -c 200,300,640,480
 	-i enable/disable remote input. E.g. -i 0 (default: 1)
 
-Use "desktop" as the window name to capture the whole Desktop. Use "cursor"
+Use "desktop" as the window name to capture the whole Desktop (default). Use "cursor"
 to capture the window at the current cursor position.
 
 Example:
-jsmpeg-vnc.exe -b 2000 -s 640x480 -f 30 -p 9006 "Quake 3: Arena"
+jsmpeg-vnc.exe -r e:\jsmpeg-vnc\client -b 2000 -s 640x480 -f 30 -p 9006 "Quake 3: Arena"
 
 To enable mouse lock in the browser (useful for games that require relative
 mouse movements, not absolute ones), append "?mouselock" at the target URL

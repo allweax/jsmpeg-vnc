@@ -1,11 +1,15 @@
 #ifndef ENCODER_H
 #define ENCODER_H
 
+#ifdef __cplusplus
 extern "C" {
-	#include "ffmpeg/include/libavutil/avutil.h"
-	#include "ffmpeg/include/libavcodec/avcodec.h"
-	#include "ffmpeg/include/libswscale/swscale.h"	
+#endif
+	#include "libavutil/avutil.h"
+	#include "libavcodec/avcodec.h"
+	#include "libswscale/swscale.h"	
+#ifdef __cplusplus
 }
+#endif
 
 typedef struct {
 	AVCodec *codec;
@@ -17,7 +21,7 @@ typedef struct {
 	int out_width, out_height;
 	
 	AVPacket packet;
-	SwsContext *sws;
+	struct SwsContext *sws;
 } encoder_t;
 
 

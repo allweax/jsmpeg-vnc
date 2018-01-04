@@ -12,7 +12,7 @@ static double timer_frequency = 0.0f;
 	if( timer_frequency == 0.0f ) { \
 		LARGE_INTEGER freq; \
 		QueryPerformanceFrequency(&freq); \
-		timer_frequency = double(freq.QuadPart)/1000.0; \
+		timer_frequency = (double)(freq.QuadPart)/1000.0; \
 	}
 
 timer_t *timer_create() {
@@ -38,7 +38,7 @@ void timer_reset(timer_t *self) {
 double timer_delta(timer_t *self) {
 	LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
-	return double(time.QuadPart-self->base_time)/timer_frequency;
+	return (double)(time.QuadPart-self->base_time)/timer_frequency;
 }
 
 __int64 __timer_measure_start() {
@@ -52,5 +52,5 @@ __int64 __timer_measure_start() {
 void __timer_measure_end(__int64 *start, double *result) {
 	LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
-	*result += double(time.QuadPart - *start)/timer_frequency;
+	*result += (double)(time.QuadPart - *start)/timer_frequency;
 }

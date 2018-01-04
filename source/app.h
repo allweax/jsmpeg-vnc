@@ -18,16 +18,17 @@ typedef struct {
 	int allow_input;
 
 	float mouse_speed;
+    char root[1024];
 } app_t;
 
 
-app_t *app_create(HWND window, int port, int bit_rate, int out_width, int out_height, int allow_input, grabber_crop_area_t crop);
+app_t *app_create(HWND window, int port, int bit_rate, int out_width, int out_height, int allow_input, grabber_crop_area_t crop, char *root);
 void app_destroy(app_t *self);
 void app_run(app_t *self, int targt_fps);
 
-int app_on_http_req(app_t *self, libwebsocket *socket, char *request);
-void app_on_connect(app_t *self, libwebsocket *socket);
-void app_on_close(app_t *self, libwebsocket *socket);
-void app_on_message(app_t *self, libwebsocket *socket, void *data, size_t len);
+int app_on_http_req(app_t *self, struct lws *wsi, char *request);
+void app_on_connect(app_t *self, struct lws *wsi, client_t *client);
+void app_on_close(app_t *self, struct lws *wsi);
+void app_on_message(app_t *self, struct lws *wsi, void *data, size_t len);
 
 #endif

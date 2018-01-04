@@ -36,6 +36,7 @@ void exit_usage(char *self_name) {
 		"  -s output size as WxH. E.g: -s 640x480 (default: same as window size)\n"
 		"  -f target framerate (default: 60)\n"
 		"  -p port (default: 8080)\n"
+        "  -r root absolute path for web service (default exe module's path)\n"
 		"  -c crop area in the captured window as X,Y,W,H. E.g.: -c 200,300,640,480\n"
 		"  -i enable/disable remote input. E.g. -i 0 (default: 1)\n\n"
 
@@ -51,9 +52,9 @@ void exit_usage(char *self_name) {
 }
 
 int main(int argc, char* argv[]) {
-	if( argc < 2 ) {
+	/*if( argc < 2 ) {
 		exit_usage(argv[0]);
-	}
+	} */
 
 	int bit_rate = 0,
 		fps = 60,
@@ -61,12 +62,14 @@ int main(int argc, char* argv[]) {
 		width = 0,
 		height = 0,
 		allow_input = 1;
+
+    char szroot[1024] = { 0 };
 	
 	grabber_crop_area_t crop = {0, 0, 0, 0};
 
 	// Parse command line options
 	for( int i = 1; i < argc-1; i+=2 ) {
-		if( strlen(argv[i]) < 2 || i >= argc-2 || argv[i][0] != '-' ) {
+		if( strlen(argv[i]) < 2 || i > argc-2 || argv[i][0] != '-' ) {
 			exit_usage(argv[0]);
 		}
 
@@ -75,11 +78,21 @@ int main(int argc, char* argv[]) {
 			case 'p': port = atoi(argv[i+1]); break;
 			case 's': sscanf(argv[i+1], "%dx%d", &width, &height); break;
 			case 'f': fps = atoi(argv[i+1]); break;
+            case 'r': sscanf(argv[i + 1], "%s", &szroot); break;
 			case 'i': allow_input = atoi(argv[i+1]); break;
 			case 'c': sscanf(argv[i+1], "%d,%d,%d,%d", &crop.x, &crop.y, &crop.width, &crop.height); break;
 			default: exit_usage(argv[0]);
 		}
 	}
+
+    if (0 >= strlen(szroot))
+    {
+        char sztmp[MAX_PATH + 1] = { 0 };
+        GetModuleFileNameA(NULL, sztmp, MAX_PATH);
+        char* c = strrchr(sztmp, '\\');
+        *c = '\0';
+        strcpy_s(szroot, sizeof(szroot), sztmp);
+    }
 
 	// Find target window
 	char *window_title = argv[argc-1];
@@ -97,12 +110,13 @@ int main(int argc, char* argv[]) {
 	}
 
 	if( !window ) {
-		printf("No window with title starting with \"%s\"\n", window_title);
-		return 0;
+		//printf("No window with title starting with \"%s\"\n", window_title);
+		//return 0;
+        window = GetDesktopWindow();
 	}
 
 	// Start the app
-	app_t *app = app_create(window, port, bit_rate, width, height, allow_input, crop);
+    app_t *app = app_create(window, port, bit_rate, width, height, allow_input, crop, szroot);
 
 	if( !app ) {
 		return 1;
@@ -111,8 +125,8 @@ int main(int argc, char* argv[]) {
 	char real_window_title[56];
 	GetWindowTextA(window, real_window_title, sizeof(real_window_title));
 	printf(
-		"Window 0x%08x: \"%s\"\n"
-		"Window size: %dx%d, output size: %dx%d, bit rate: %d kb/s\n\n"
+		"Window 0X%p: \"%s\"\n"
+		"Window size: %dx%d, output size: %dx%d, bit rate: %lld kb/s\n\n"
 		"Server started on: http://%s:%d/\n\n",
 		window, real_window_title,
 		app->grabber->width, app->grabber->height,

@@ -58,24 +58,67 @@ int swap_int16(int in) {
 	return ((in>>8)&0xff) | ((in<<8)&0xff00);
 }
 
+const char * mime_type(const char *file)
+{
+    int n = (int)strlen(file);
+
+    if (n < 5)
+        return NULL;
+
+    if (!strcmp(&file[n - 4], ".ico"))
+        return "image/x-icon";
+
+    if (!strcmp(&file[n - 4], ".png"))
+        return "image/png";
+
+    if (!strcmp(&file[n - 5], ".html"))
+        return "text/html";
+
+    if (!strcmp(&file[n - 4], ".css"))
+        return "text/css";
+
+    if (!strcmp(&file[n - 3], ".js"))
+        return "text/javascript";
+
+    if (!strcmp(&file[n - 4], ".zip"))
+        return "application/zip";
+
+    return NULL;
+}
+
 // Proxies for app_on_* callbacks
-void on_connect(server_t *server, libwebsocket *socket) { app_on_connect((app_t *)server->user, socket); }
-int on_http_req(server_t *server, libwebsocket *socket, char *request) { return app_on_http_req((app_t *)server->user, socket, request); }
-void on_message(server_t *server, libwebsocket *socket, void *data, size_t len) { app_on_message((app_t *)server->user, socket, data, len); }
-void on_close(server_t *server, libwebsocket *socket) { app_on_close((app_t *)server->user, socket); }
+void on_connect(server_t *server, struct lws *wsi, client_t *client)
+{
+    app_on_connect((app_t *)server->user, wsi, client);
+}
+
+int on_http_req(server_t *server, struct lws *wsi, char *request)
+{
+    return app_on_http_req((app_t *)server->user, wsi, request);
+}
+
+void on_message(server_t *server, struct lws *wsi, void *data, size_t len)
+{
+    app_on_message((app_t *)server->user, wsi, data, len);
+}
+
+void on_close(server_t *server, struct lws *wsi)
+{
+    app_on_close((app_t *)server->user, wsi);
+}
 
 
-
-
-app_t *app_create(HWND window, int port, int bit_rate, int out_width, int out_height, int allow_input, grabber_crop_area_t crop) {
+app_t *app_create(HWND window, int port, int bit_rate, int out_width, int out_height, int allow_input, grabber_crop_area_t crop, char *root) {
 	app_t *self = (app_t *)malloc(sizeof(app_t));
 	memset(self, 0, sizeof(app_t));
 
 	self->mouse_speed = APP_MOUSE_SPEED;
 	self->grabber = grabber_create(window, crop);
 	self->allow_input = allow_input;
-	
-	if( !out_width ) { out_width = self->grabber->width; }
+
+    strcpy_s(self->root, sizeof(self->root), root);
+
+    if( !out_width ) { out_width = self->grabber->width; }
 	if( !out_height ) { out_height = self->grabber->height; }
 	if( !bit_rate ) { bit_rate = out_width * 1500; } // estimate bit rate based on output size
 
@@ -109,38 +152,53 @@ void app_destroy(app_t *self) {
 	free(self);
 }
 
-int app_on_http_req(app_t *self, libwebsocket *socket, char *request) {
+int app_on_http_req(app_t *self, struct lws *wsi, char *request) {
 	//printf("http request: %s\n", request);
-	if( strcmp(request, "/") == 0 ) {
-		libwebsockets_serve_http_file(self->server->context, socket, "client/index.html", "text/html; charset=utf-8", NULL);
-		return true;
-	}
-	else if( strcmp(request, "/jsmpg.js") == 0 ) {
-		libwebsockets_serve_http_file(self->server->context, socket, "client/jsmpg.js", "text/javascript; charset=utf-8", NULL);
-		return true;
-	}
-	else if( strcmp(request, "/jsmpg-vnc.js") == 0 ) {
-		libwebsockets_serve_http_file(self->server->context, socket, "client/jsmpg-vnc.js", "text/javascript; charset=utf-8", NULL);
-		return true;
-	}
-	return false;
+    char szbuf[2048] = { 0 };
+    
+    if (0 == strcmp(request, "/"))
+    {
+        snprintf(szbuf, sizeof(szbuf), "%s\\%s", self->root, "index.html");
+    }
+    else
+    {
+        char * p = NULL;
+        p = strchr(request, '/');
+        while (p)
+        {
+            *p = '\\';
+            p = strchr(request, '/');
+        }
+        snprintf(szbuf, sizeof(szbuf), "%s%s", self->root, request);
+    }
+
+    if (-1 != _access(szbuf, 04))
+    {
+        if (0 == lws_serve_http_file(wsi, szbuf, mime_type(szbuf), NULL, 0))
+            return 1;
+    }
+
+    // failed
+	return 0;
 }
 
-void app_on_connect(app_t *self, libwebsocket *socket) {
-	printf("\nclient connected: %s\n", server_get_client_address(self->server, socket));
+void app_on_connect(app_t *self, struct lws *wsi, client_t *client) {
+	printf("\nclient connected: %s\n", server_get_client_address(self->server, wsi));
 
 	jsmpeg_header_t header = {		
 		{'j','s','m','p'}, 
 		swap_int16(self->encoder->out_width), swap_int16(self->encoder->out_height)
 	};
-	server_send(self->server, socket, &header, sizeof(header), server_type_binary);
+
+    buffer_t *buffer = buffer_create(server_type_binary, (unsigned char *)&header, sizeof(header));
+    buffer_push_back(&client->buffers, buffer);
 }
 
-void app_on_close(app_t *self, libwebsocket *socket) {
-	printf("\nclient disconnected: %s\n", server_get_client_address(self->server, socket));
+void app_on_close(app_t *self, struct lws *wsi) {
+	printf("\nclient disconnected: %s\n", server_get_client_address(self->server, wsi));
 }
 
-void app_on_message(app_t *self, libwebsocket *socket, void *data, size_t len) {
+void app_on_message(app_t *self, struct lws *wsi, void *data, size_t len) {
 	if (!self->allow_input) {
 		return;
 	}
@@ -191,12 +249,12 @@ void app_on_message(app_t *self, libwebsocket *socket, void *data, size_t len) {
 				y = (int)(input->y * self->mouse_speed);
 
 			//printf("mouse relative %d, %d\n", x, y);
-			mouse_event(MOUSEEVENTF_MOVE, x, y, 0, NULL);
+			mouse_event(MOUSEEVENTF_MOVE, x, y, 0, (ULONG_PTR)NULL);
 		}
 
 		if( type & input_type_mouse_button ) {
 			//printf("mouse button %d\n", input->flags);
-			mouse_event(input->flags, 0, 0, 0, NULL);
+			mouse_event(input->flags, 0, 0, 0, (ULONG_PTR)NULL);
 		}
 	}
 }
@@ -212,7 +270,7 @@ void app_run(app_t *self, int target_fps) {
 
 	timer_t *frame_timer = timer_create();
 
-	while( true ) {
+	while( 1 ) {
 		double delta = timer_delta(frame_timer);
 		if( delta > wait_time ) {
 			fps = fps * 0.95f + 50.0f/delta;
